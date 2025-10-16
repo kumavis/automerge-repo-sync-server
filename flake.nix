@@ -28,7 +28,7 @@
             cd "$WORK_DIR"
 
             echo "Installing dependencies with npm..."
-            npm ci --omit=dev
+            npm ci --omit=dev --no-write-lock-file
 
             echo "Starting server..."
             exec node ./src/index.js "$@"
