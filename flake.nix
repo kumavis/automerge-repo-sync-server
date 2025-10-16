@@ -30,6 +30,13 @@
           };
 
           config = mkIf cfg.enable {
+            users.users.automerge-repo-sync-server = {
+              isSystemUser = true;
+              group = "automerge-repo-sync-server";
+              home = cfg.dataDir;
+            };
+            users.groups.automerge-repo-sync-server = {};
+
             systemd.services.automerge-repo-sync-server = {
               description = "Automerge Repo Sync Server";
               after = [ "network.target" ];
@@ -39,6 +46,7 @@
                 PORT = toString cfg.port;
                 DATA_DIR = cfg.dataDir;
                 NODE_ENV = "production";
+                NPM_CONFIG_CACHE = "${cfg.dataDir}/.npm";
               };
 
               serviceConfig = {
@@ -47,6 +55,9 @@
                 WorkingDirectory = cfg.dataDir;
                 Restart = "always";
                 RestartSec = "5s";
+
+                User = "automerge-repo-sync-server";
+                Group = "automerge-repo-sync-server";
 
                 NoNewPrivileges = true;
                 PrivateTmp = true;
@@ -57,7 +68,7 @@
             };
 
             systemd.tmpfiles.rules = [
-              "d ${cfg.dataDir} 0755 root root -"
+              "d ${cfg.dataDir} 0755 automerge-repo-sync-server automerge-repo-sync-server -"
             ];
           };
         };
@@ -83,7 +94,7 @@
             cd "$WORK_DIR"
 
             echo "Installing deps..."
-            npm ci --omit=dev --no-write-lock-file
+            npm ci --omit=dev --no-audit --no-fund --prefer-offline --no-progress
 
             echo "Starting server..."
             exec node ./src/index.js "$@"
