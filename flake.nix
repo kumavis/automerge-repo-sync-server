@@ -1,0 +1,57 @@
+{
+  description = "Automerge repo sync server";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, flake-utils, ... }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+        npmDepsHash = import ./npm-deps-hash.nix;
+      in {
+        packages.default = pkgs.buildNpmPackage {
+          pname = "@automerge/automerge-repo-sync-server";
+          version = "0.3.0";
+          src = ./.;
+          # set in ./npm-deps-hash.nix
+          inherit npmDepsHash;
+
+          # https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/node/build-npm-package/default.nix
+          dontNpmBuild = true;
+          # https://docs.npmjs.com/cli/v10/commands/npm-ci?v=true#omit
+          npmInstallFlags = [ "--omit=dev" ];
+        };
+
+        nixosModules.default = { config, lib, pkgs, ... }: {
+          options.services.automerge-repo-sync-server = {
+            enable = lib.mkEnableOption "Automerge repo sync server";
+            port = lib.mkOption {
+              type = lib.types.port;
+              default = 3030;
+            };
+            environment = lib.mkOption {
+              type = lib.types.attrsOf lib.types.str;
+              default = {};
+              description = "Extra environment variables for the Automerge repo sync server.";
+            };
+          };
+
+          config = lib.mkIf config.services.automerge-repo-sync-server.enable {
+            systemd.services.automerge-repo-sync-server = {
+              description = "Automerge repo sync server";
+              wantedBy = [ "multi-user.target" ];
+              serviceConfig = {
+                Restart = "always";
+                User = "automerge";
+                Environment = lib.flatten ([
+                  "PORT=${toString config.services.automerge-repo-sync-server.port}"
+                ] ++ lib.mapAttrsToList (n: v: "${n}=${v}") config.services.automerge-repo-sync-server.environment);
+              };
+            };
+          };
+        };
+      });
+}
