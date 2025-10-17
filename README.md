@@ -13,6 +13,7 @@ server.
 `npx @automerge/automerge-repo-sync-server`
 
 Or you can run it locally:
+
 ```
 pnpm i
 pnpm start
@@ -43,6 +44,7 @@ docker rm syncserver
 If you have [Nix](https://nixos.org/) installed with flakes enabled:
 
 **As a NixOS service:**
+
 ```nix
 {
   services.automerge-sync-server = {
@@ -61,7 +63,6 @@ To support the Nix package, the `npm-deps-hash.nix` must be kept in sync with th
 If Nix is installed, you can simple run `npm run nix:deps` to update it.
 
 If Nix is not available, the Nix GitHub Action workflow will report the correct value to update the file with.
-
 
 Additionally, the build instructions in `flake.nix` and `.github/workflows/nix.yml` must be kept in sync, though these will change less frequently.
 
