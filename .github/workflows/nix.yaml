@@ -32,10 +32,14 @@ jobs:
             echo "::warning::Current:  $current"
             echo "::warning::Expected: $expected"
             echo ""
-            echo "\033[1m\033[32mTo update the expected hash, run:"
-            echo "\033[0m\\033[33m  echo \"\\\"$expected\\\"\" > npm-deps-hash.nix"
-            echo "\033[32mor if you have Nix installed, you can always sync it with:"
-            echo "\033[0m\\033[33m  npm run nix:deps"
+            echo "➡️  To update to the expected hash, run:"
+            echo ""
+            echo "      echo \"\\\"$expected\\\"\" > npm-deps-hash.nix"
+            echo ""
+            echo "➡️  or if you have Nix installed, you can always sync it with:"
+            echo ""
+            echo "      npm run nix:deps"
+            echo ""
             echo ""
             exit 1
           else
