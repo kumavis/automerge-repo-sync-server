@@ -1,4 +1,4 @@
-name: Nix Deps Hash Check
+name: Nix Package
 on:
   push:
     branches:
@@ -8,8 +8,9 @@ on:
       - main
 
 jobs:
-  hash-check:
+  deps-hash-check:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +36,7 @@ jobs:
             echo "  echo \"\\\"$expected\\\"\" > npm-deps-hash.nix"
             echo "or if you have Nix installed, you can calculate it yourself with:"
             echo "  npm run nix:deps"
+            exit 1
           else
             echo "✅ npm-deps-hash.nix is up to date (\"$expected\")"
           fi
