@@ -1,121 +1,55 @@
 {
-  description = "Automerge Repo Sync Server";
+  description = "Automerge repo sync server";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    let
-      nixosModule = { config, pkgs, lib, ... }:
-        with lib;
-        let
-          cfg = config.services.automerge-repo-sync-server;
-        in {
-          options.services.automerge-repo-sync-server = {
-            enable = mkEnableOption "Automerge Repo Sync Server";
-
-            port = mkOption {
-              type = types.port;
-              default = 3030;
-              description = "Port to listen on for websocket connections";
-            };
-
-            dataDir = mkOption {
-              type = types.path;
-              default = "/var/lib/automerge-repo-sync-server";
-              description = "Directory to store saved documents";
-            };
-          };
-
-          config = mkIf cfg.enable {
-            users.users.automerge-repo-sync-server = {
-              isSystemUser = true;
-              group = "automerge-repo-sync-server";
-              home = cfg.dataDir;
-            };
-            users.groups.automerge-repo-sync-server = {};
-
-            systemd.services.automerge-repo-sync-server = {
-              description = "Automerge Repo Sync Server";
-              after = [ "network.target" ];
-              wantedBy = [ "multi-user.target" ];
-
-              environment = {
-                PORT = toString cfg.port;
-                DATA_DIR = cfg.dataDir;
-                NODE_ENV = "production";
-                NPM_CONFIG_CACHE = "${cfg.dataDir}/.npm";
-              };
-
-              serviceConfig = {
-                Type = "simple";
-                ExecStart = "${self.packages.${pkgs.system}.default}/bin/automerge-repo-sync-server";
-                WorkingDirectory = cfg.dataDir;
-                Restart = "always";
-                RestartSec = "5s";
-
-                User = "automerge-repo-sync-server";
-                Group = "automerge-repo-sync-server";
-
-                NoNewPrivileges = true;
-                PrivateTmp = true;
-                ProtectSystem = "full";
-                ProtectHome = true;
-                ReadWritePaths = [ cfg.dataDir ];
-              };
-            };
-
-            systemd.tmpfiles.rules = [
-              "d ${cfg.dataDir} 0755 automerge-repo-sync-server automerge-repo-sync-server -"
-            ];
-          };
-        };
-    in
+  outputs = { self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs { inherit system; };
+      in {
+        packages.default = pkgs.buildNpmPackage {
+          pname = "@automerge/automerge-repo-sync-server";
+          version = "0.3.0";
+          src = ./.;
+          # npmDepsHash = "sha256-mZRQb/TjRR8K8ZKKALuDNQZLmJ6G2T9+UgHY9+t6zYo=";
+          npmDepsHash = "sha256-jZ/T8h6FpI7nmdj+ygbSuhtrGmg0WCdK68/S6+GXl70=";
+          dontNpmBuild = true;
 
-        run-auto = pkgs.writeShellApplication {
-          name = "automerge-repo-sync-server";
-          runtimeInputs = [ pkgs.nodejs_20 ];
-          text = ''
-            set -euo pipefail
-            WORK_DIR=$(mktemp -d)
-            trap 'chmod -R u+w "$WORK_DIR" 2>/dev/null || true; rm -rf "$WORK_DIR"' EXIT
-
-            echo "Using Node $(node --version)"
-            echo "Using npm  $(npm --version)"
-
-            echo "Copying source..."
-            cp -r ${./.}/* "$WORK_DIR"/
-            chmod -R u+w "$WORK_DIR"
-            cd "$WORK_DIR"
-
-            echo "Installing deps..."
-            npm ci --omit=dev --no-audit --no-fund --prefer-offline --no-progress
-
-            echo "Starting server..."
-            exec node ./src/index.js "$@"
-          '';
+          # https://docs.npmjs.com/cli/v10/commands/npm-ci?v=true#omit
+          npmInstallFlags = [ "--omit=dev" ];
         };
-      in
-      {
-        packages.default = run-auto;
-        apps.default = {
-          type = "app";
-          program = "${run-auto}/bin/automerge-repo-sync-server";
+
+        nixosModules.default = { config, lib, pkgs, ... }: {
+          options.services.automerge-repo-sync-server = {
+            enable = lib.mkEnableOption "Automerge repo sync server";
+            port = lib.mkOption {
+              type = lib.types.port;
+              default = 3030;
+            };
+            environment = lib.mkOption {
+              type = lib.types.attrsOf lib.types.str;
+              default = {};
+              description = "Extra environment variables for the Automerge repo sync server.";
+            };
+          };
+
+          config = lib.mkIf config.services.automerge-repo-sync-server.enable {
+            systemd.services.automerge-repo-sync-server = {
+              description = "Automerge repo sync server";
+              wantedBy = [ "multi-user.target" ];
+              serviceConfig = {
+                Restart = "always";
+                User = "automerge";
+                Environment = lib.flatten ([
+                  "PORT=${toString config.services.automerge-repo-sync-server.port}"
+                ] ++ lib.mapAttrsToList (n: v: "${n}=${v}") config.services.automerge-repo-sync-server.environment);
+              };
+            };
+          };
         };
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            nodejs_20
-            pnpm
-            nodePackages.typescript
-          ];
-        };
-      }
-    ) // {
-      nixosModules.default = nixosModule;
-    };
+      });
 }
