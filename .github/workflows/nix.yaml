@@ -1,0 +1,38 @@
+name: Nix Deps Hash Check
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install
+        run: npm ci --omit=dev
+
+      - name: Verify npm-deps-hash.nix
+        run: |
+          echo "Computing hash of npm dependencies..."
+          nix run nixpkgs#prefetch-npm-deps package-lock.json > nix-expected-hash.txt
+          expected=$(cat nix-expected-hash.txt | tr -d '\n')
+          current=$(cat npm-deps-hash.nix | tr -d '\n' | tr -d '"')
+
+          if [ "$expected" != "$current" ]; then
+            echo "::warning::npm-deps-hash.nix is out of date"
+            echo ""
+            echo "Current:  $current"
+            echo "Expected: $expected"
+            echo ""
+            echo "To update it the expected hash, run:"
+            echo "  echo \"\\\"$expected\\\"\" > npm-deps-hash.nix"
+            echo "or if you have Nix installed, you can calculate it yourself with:"
+            echo "  npm run nix:deps"
+          else
+            echo "✅ npm-deps-hash.nix is up to date (\"$expected\")"
+          fi
