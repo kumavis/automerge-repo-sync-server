@@ -15,8 +15,7 @@
           pname = "@automerge/automerge-repo-sync-server";
           version = "0.3.0";
           src = ./.;
-          # npmDepsHash = "sha256-mZRQb/TjRR8K8ZKKALuDNQZLmJ6G2T9+UgHY9+t6zYo=";
-          npmDepsHash = "sha256-jZ/T8h6FpI7nmdj+ygbSuhtrGmg0WCdK68/S6+GXl70=";
+          npmDepsHash = "sha256-mZRQb/TjRR8K8ZKKALuDNQZLmJ6G2T9+UgHY9+t6zYo=";
           dontNpmBuild = true;
 
           # https://docs.npmjs.com/cli/v10/commands/npm-ci?v=true#omit
