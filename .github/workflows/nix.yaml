@@ -26,16 +26,17 @@ jobs:
           expected=$(cat nix-expected-hash.txt | tr -d '\n')
           current=$(cat npm-deps-hash.nix | tr -d '\n' | tr -d '"')
 
+          echo ""
           if [ "$expected" != "$current" ]; then
-            echo "::warning::npm-deps-hash.nix is out of date"
+            echo "::warning::Nix deps hash in npm-deps-hash.nix is out of sync with package-lock.json"
+            echo "::warning::Current:  $current"
+            echo "::warning::Expected: $expected"
             echo ""
-            echo "Current:  $current"
-            echo "Expected: $expected"
+            echo "\033[1m\033[32mTo update the expected hash, run:"
+            echo "\033[0m\\033[33m  echo \"\\\"$expected\\\"\" > npm-deps-hash.nix"
+            echo "\033[32mor if you have Nix installed, you can always sync it with:"
+            echo "\033[0m\\033[33m  npm run nix:deps"
             echo ""
-            echo "To update it the expected hash, run:"
-            echo "  echo \"\\\"$expected\\\"\" > npm-deps-hash.nix"
-            echo "or if you have Nix installed, you can calculate it yourself with:"
-            echo "  npm run nix:deps"
             exit 1
           else
             echo "✅ npm-deps-hash.nix is up to date (\"$expected\")"
