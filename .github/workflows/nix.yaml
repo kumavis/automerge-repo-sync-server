@@ -8,10 +8,12 @@ on:
       - main
 
 jobs:
-  test:
+  hash-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v31
 
       - name: install
         run: npm ci --omit=dev
